@@ -42,56 +42,40 @@ const BookingRequestsList = ({ onRequestUpdate }: BookingRequestsListProps) => {
 
       if (!user) return;
 
-      // First try with user_id foreign key, fallback to join
-      let data, error;
-      
-      try {
-        const result = await supabase
-          .from("booking_requests")
-          .select(
-            `
-            *,
-            properties (title, address, rental_type, price),
-            profiles!booking_requests_student_id_fkey (full_name, phone)
-          `
-          )
-          .eq("owner_id", user.id)
-          .order("created_at", { ascending: false });
-        
-        data = result.data;
-        error = result.error;
-      } catch (e) {
-        // Fallback: manual join if foreign key not found
-        const result = await supabase
-          .from("booking_requests")
-          .select("*")
-          .eq("owner_id", user.id)
-          .order("created_at", { ascending: false });
-        
-        if (result.error) throw result.error;
-        
-        // Manually fetch related data
-        const bookingsWithData = await Promise.all(
-          (result.data || []).map(async (booking) => {
-            const [propertyRes, profileRes] = await Promise.all([
-              supabase.from("properties").select("title, address, rental_type, price").eq("id", booking.property_id).single(),
-              supabase.from("profiles").select("full_name, phone").eq("id", booking.student_id).single()
-            ]);
-            
-            return {
-              ...booking,
-              properties: propertyRes.data,
-              profiles: profileRes.data
-            };
-          })
-        );
-        
-        data = bookingsWithData;
-        error = null;
-      }
+      // Fetch booking requests
+      const { data: bookingsData, error: bookingsError } = await supabase
+        .from("booking_requests")
+        .select("*")
+        .eq("owner_id", user.id)
+        .order("created_at", { ascending: false });
 
-      if (error) throw error;
-      setRequests(data || []);
+      if (bookingsError) throw bookingsError;
+
+      // Manually fetch related data for each booking
+      const bookingsWithData = await Promise.all(
+        (bookingsData || []).map(async (booking) => {
+          const [propertyRes, profileRes] = await Promise.all([
+            supabase
+              .from("properties")
+              .select("title, address, rental_type, price")
+              .eq("id", booking.property_id)
+              .single(),
+            supabase
+              .from("profiles")
+              .select("full_name, phone")
+              .eq("id", booking.student_id)
+              .single()
+          ]);
+          
+          return {
+            ...booking,
+            properties: propertyRes.data,
+            profiles: profileRes.data
+          };
+        })
+      );
+
+      setRequests(bookingsWithData);
     } catch (error) {
       console.error("Error fetching booking requests:", error);
       toast({
