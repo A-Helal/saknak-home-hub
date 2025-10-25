@@ -28,7 +28,7 @@ BEGIN
   IF NEW.status = 'accepted' AND OLD.status != 'accepted' THEN
     INSERT INTO notifications (user_id, title, body)
     VALUES (
-      (SELECT user_id FROM profiles WHERE id = NEW.user_id),
+      NEW.student_id,
       'تم قبول حجزك',
       'تم قبول طلب الحجز الخاص بك من قبل المالك'
     );
@@ -116,12 +116,12 @@ BEGIN
     -- Add 10 points to student's score
     UPDATE profiles
     SET score = COALESCE(score, 0) + 10
-    WHERE id = NEW.user_id;
+    WHERE id = NEW.student_id;
     
     -- Send congratulations notification
     INSERT INTO notifications (user_id, title, body)
     VALUES (
-      NEW.user_id,
+      NEW.student_id,
       '🎉 لقد حصلت على نقاط!',
       'تم إضافة 10 نقاط لحسابك لدفع الإيجار في الموعد المحدد. استمر في الالتزام!'
     );
@@ -149,7 +149,7 @@ BEGIN
   -- Get student profile
   SELECT * INTO v_profile
   FROM profiles
-  WHERE id = NEW.user_id;
+  WHERE id = NEW.student_id;
   
   -- Check if student profile is complete
   IF v_profile.user_type = 'student' THEN

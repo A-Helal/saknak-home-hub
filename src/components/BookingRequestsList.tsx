@@ -128,12 +128,9 @@ const BookingRequestsList = ({ onRequestUpdate }: BookingRequestsListProps) => {
       pending: { label: "قيد الانتظار", variant: "secondary" as const, icon: Clock },
       accepted: { label: "مقبول", variant: "default" as const, icon: Check },
       rejected: { label: "مرفوض", variant: "destructive" as const, icon: X },
-      denied: { label: "مرفوض (تلقائي)", variant: "destructive" as const, icon: X },
-      expired: { label: "منتهي الصلاحية", variant: "destructive" as const, icon: Clock },
     };
 
     const config = statusConfig[status as keyof typeof statusConfig];
-    if (!config) return null; // Handle unknown statuses gracefully
     const Icon = config.icon;
 
     return (
