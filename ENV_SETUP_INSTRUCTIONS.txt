@@ -1,0 +1,68 @@
+═══════════════════════════════════════════════════════════════
+🚀 VERCEL DEPLOYMENT FIX - CRITICAL STEPS REQUIRED
+═══════════════════════════════════════════════════════════════
+
+Your website (https://saknak-home-hub.vercel.app/) has errors because
+environment variables are NOT configured in Vercel!
+
+═══════════════════════════════════════════════════════════════
+📋 STEP 1: GET YOUR SUPABASE KEYS
+═══════════════════════════════════════════════════════════════
+
+1. Open this link:
+   👉 https://supabase.com/dashboard/project/fnfgsdgrmhjeyzglynxw/settings/api
+
+2. Copy these TWO values:
+   
+   ✅ Project URL:
+      Example: https://fnfgsdgrmhjeyzglynxw.supabase.co
+   
+   ✅ anon/public key (the long one):
+      Example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
+═══════════════════════════════════════════════════════════════
+📋 STEP 2: ADD TO VERCEL
+═══════════════════════════════════════════════════════════════
+
+1. Go to: https://vercel.com/dashboard
+2. Click your project
+3. Click "Settings" tab
+4. Click "Environment Variables" on left side
+
+5. Add FIRST variable:
+   Name:  VITE_SUPABASE_URL
+   Value: [paste your Project URL from Step 1]
+   ☑ Production ☑ Preview ☑ Development
+   Click "Save"
+
+6. Add SECOND variable:
+   Name:  VITE_SUPABASE_PUBLISHABLE_KEY
+   Value: [paste your anon key from Step 1]
+   ☑ Production ☑ Preview ☑ Development
+   Click "Save"
+
+═══════════════════════════════════════════════════════════════
+📋 STEP 3: REDEPLOY
+═══════════════════════════════════════════════════════════════
+
+After adding environment variables:
+
+1. Go to "Deployments" tab
+2. Click "..." on latest deployment
+3. Click "Redeploy"
+4. Wait 1-2 minutes
+
+═══════════════════════════════════════════════════════════════
+✅ DONE! TEST YOUR WEBSITE
+═══════════════════════════════════════════════════════════════
+
+After redeployment:
+✅ Login will work
+✅ Booking apartments will work
+✅ Maps will display
+✅ All features working!
+
+Visit: https://saknak-home-hub.vercel.app/
+
+═══════════════════════════════════════════════════════════════
+
