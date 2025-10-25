@@ -109,7 +109,7 @@ const StudentDashboard = () => {
         .from("booking_requests")
         .insert({
           property_id: propertyId,
-          user_id: session.user.id,
+          student_id: session.user.id,
           owner_id: property.owner_id,
           status: "pending",
         })

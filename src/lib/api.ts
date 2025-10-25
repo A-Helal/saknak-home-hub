@@ -169,7 +169,7 @@ export const bookingsApi = {
   },
 
   async createBooking(booking: {
-    user_id: string;
+    student_id: string;
     property_id: string;
     owner_id: string;
     message?: string;
@@ -373,4 +373,3 @@ export const geocodingApi = {
     }
   },
 };
-
