@@ -77,7 +77,7 @@ export const ReservationButton = ({
       const { data: existingBooking } = await supabase
         .from("booking_requests")
         .select("id, status")
-        .eq("user_id", user.id)
+        .eq("student_id", user.id)
         .eq("property_id", propertyId)
         .eq("status", "pending")
         .maybeSingle();
@@ -104,7 +104,7 @@ export const ReservationButton = ({
       const { data, error } = await supabase
         .from("booking_requests")
         .insert({
-          user_id: user.id,
+          student_id: user.id,
           property_id: propertyId,
           owner_id: property.owner_id,
           status: "pending",
