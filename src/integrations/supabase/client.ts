@@ -9,7 +9,7 @@ const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
   console.error('❌ Missing Supabase environment variables!');
   console.error('Required: VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY');
-  console.error('Get them from: https://supabase.com/dashboard/project/fnfgsdgrmhjeyzglynxw/settings/api');
+  console.error('Get them from: https://supabase.com/dashboard/project/oftnqwmvcpwzsaeajrns/settings/api');
   throw new Error('Missing required environment variables. Please configure VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY in Vercel settings.');
 }
 

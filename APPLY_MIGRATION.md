@@ -8,7 +8,7 @@ The code is updated to use `student_id`, but your Supabase production database s
 ## ⚡ Quick Fix Option 1: Supabase Dashboard (EASIEST - 2 MINUTES)
 
 1. **Go to Supabase SQL Editor:**
-   - Open: https://supabase.com/dashboard/project/fnfgsdgrmhjeyzglynxw/sql/new
+   - Open: https://supabase.com/dashboard/project/oftnqwmvcpwzsaeajrns/sql/new
 
 2. **Copy and paste this SQL:**
    ```sql
@@ -102,13 +102,13 @@ npm install -g supabase
 supabase login
 
 # Link to your project
-supabase link --project-ref fnfgsdgrmhjeyzglynxw
+supabase link --project-ref oftnqwmvcpwzsaeajrns
 
 # Push migrations
 supabase db push
 
 # Or apply specific migration
-supabase migration up --db-url "postgresql://postgres:[YOUR-PASSWORD]@db.fnfgsdgrmhjeyzglynxw.supabase.co:5432/postgres"
+supabase migration up --db-url "postgresql://postgres:[YOUR-PASSWORD]@db.oftnqwmvcpwzsaeajrns.supabase.co:5432/postgres"
 ```
 
 ---

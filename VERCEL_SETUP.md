@@ -10,9 +10,9 @@ Your app is deployed but **missing environment variables**! This is why you're g
 
 ### 1️⃣ Get Your Supabase Keys
 
-1. Open: **https://supabase.com/dashboard/project/fnfgsdgrmhjeyzglynxw/settings/api**
+1. Open: **https://supabase.com/dashboard/project/oftnqwmvcpwzsaeajrns/settings/api**
 2. Copy these two values:
-   - **Project URL** (starts with `https://fnfgsdgrmhjeyzglynxw.supabase.co`)
+   - **Project URL** (starts with `https://oftnqwmvcpwzsaeajrns.supabase.co`)
    - **anon/public key** (long string starting with `eyJ...`)
 
 ---
@@ -30,7 +30,7 @@ Your app is deployed but **missing environment variables**! This is why you're g
    **Variable 1:**
    ```
    Name:  VITE_SUPABASE_URL
-   Value: https://fnfgsdgrmhjeyzglynxw.supabase.co
+   Value: https://oftnqwmvcpwzsaeajrns.supabase.co
    ```
    - Environment: ✅ Production ✅ Preview ✅ Development
    - Click **"Save"**

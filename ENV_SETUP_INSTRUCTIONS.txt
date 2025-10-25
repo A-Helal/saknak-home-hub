@@ -10,12 +10,12 @@ environment variables are NOT configured in Vercel!
 ═══════════════════════════════════════════════════════════════
 
 1. Open this link:
-   👉 https://supabase.com/dashboard/project/fnfgsdgrmhjeyzglynxw/settings/api
+   👉 https://supabase.com/dashboard/project/oftnqwmvcpwzsaeajrns/settings/api
 
 2. Copy these TWO values:
    
    ✅ Project URL:
-      Example: https://fnfgsdgrmhjeyzglynxw.supabase.co
+      Example: https://oftnqwmvcpwzsaeajrns.supabase.co
    
    ✅ anon/public key (the long one):
       Example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
