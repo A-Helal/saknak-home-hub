@@ -4,10 +4,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { Session } from "@supabase/supabase-js";
 import Navbar from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
-import OwnerDashboard from "@/components/OwnerDashboard";
-import StudentDashboard from "@/components/StudentDashboard";
+import { StudentProfileForm } from "@/components/StudentProfileForm";
+import { OwnerProfileForm } from "@/components/OwnerProfileForm";
 
-const Dashboard = () => {
+const Profile = () => {
   const navigate = useNavigate();
   const [session, setSession] = useState<Session | null>(null);
   const [userType, setUserType] = useState<string | null>(null);
@@ -56,11 +56,12 @@ const Dashboard = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-secondary/30">
+      <div className="min-h-screen bg-secondary/30 flex flex-col">
         <Navbar />
-        <div className="container mx-auto px-4 py-16 text-center">
+        <div className="container mx-auto px-4 py-16 text-center flex-1">
           <p className="text-lg text-muted-foreground">جاري التحميل...</p>
         </div>
+        <Footer />
       </div>
     );
   }
@@ -68,12 +69,13 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen bg-secondary/30 flex flex-col">
       <Navbar />
-      <div className="flex-1">
-        {userType === "owner" ? <OwnerDashboard /> : <StudentDashboard />}
+      <div className="container mx-auto px-4 py-8 flex-1">
+        <h1 className="text-3xl font-bold mb-8">الملف الشخصي</h1>
+        {userType === "owner" ? <OwnerProfileForm /> : <StudentProfileForm />}
       </div>
       <Footer />
     </div>
   );
 };
 
-export default Dashboard;
+export default Profile;

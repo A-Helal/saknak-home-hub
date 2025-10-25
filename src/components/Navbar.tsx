@@ -4,6 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
 import { Session } from "@supabase/supabase-js";
+import { NotificationCenter } from "./NotificationCenter";
 
 const Navbar = () => {
   const navigate = useNavigate();
@@ -37,12 +38,17 @@ const Navbar = () => {
             <span className="text-2xl font-bold text-primary">سكنك</span>
           </Link>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
             {session ? (
               <>
+                <NotificationCenter />
                 <Button variant="ghost" onClick={() => navigate("/dashboard")}>
+                  <Building2 className="h-5 w-5 mr-2" />
+                  الرئيسية
+                </Button>
+                <Button variant="ghost" onClick={() => navigate("/profile")}>
                   <UserCircle className="h-5 w-5 mr-2" />
-                  لوحة التحكم
+                  الملف الشخصي
                 </Button>
                 <Button variant="outline" onClick={handleLogout}>
                   تسجيل الخروج

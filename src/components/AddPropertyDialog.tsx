@@ -9,6 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { X, Upload, Image as ImageIcon, Video } from "lucide-react";
+import { STORAGE_BUCKETS } from "@/lib/constants";
 
 interface AddPropertyDialogProps {
   open: boolean;
@@ -36,6 +37,8 @@ const AddPropertyDialog = ({ open, onOpenChange, onSuccess }: AddPropertyDialogP
     has_internet: false,
     description: "",
   });
+  const [coordinates, setCoordinates] = useState<{ lat: number; lng: number } | null>(null);
+  const [geocoding, setGeocoding] = useState(false);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -88,6 +91,47 @@ const AddPropertyDialog = ({ open, onOpenChange, onSuccess }: AddPropertyDialogP
   const removeVideo = () => {
     setVideoFile(null);
     setVideoPreview("");
+  };
+
+  const geocodeAddress = async (address: string) => {
+    if (!address) return null;
+    
+    setGeocoding(true);
+    try {
+      // Use Nominatim OpenStreetMap geocoding API (free, no API key needed)
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address)}&format=json&limit=1`
+      );
+      
+      if (!response.ok) throw new Error('Geocoding failed');
+      
+      const data = await response.json();
+      
+      if (data && data.length > 0) {
+        const { lat, lon } = data[0];
+        return { lat: parseFloat(lat), lng: parseFloat(lon) };
+      }
+      
+      return null;
+    } catch (error) {
+      console.error('Geocoding error:', error);
+      return null;
+    } finally {
+      setGeocoding(false);
+    }
+  };
+
+  const handleAddressBlur = async () => {
+    if (formData.address) {
+      const coords = await geocodeAddress(formData.address);
+      if (coords) {
+        setCoordinates(coords);
+        toast({
+          title: "تم العثور على الموقع!",
+          description: "تم تحديد موقع العقار على الخريطة تلقائياً",
+        });
+      }
+    }
   };
 
   const handleAISuggestions = async () => {
@@ -153,13 +197,13 @@ const AddPropertyDialog = ({ open, onOpenChange, onSuccess }: AddPropertyDialogP
         const fileName = `${user.id}/${Date.now()}-${i}.${fileExt}`;
         
         const { error: uploadError, data } = await supabase.storage
-          .from('property-images')
+          .from(STORAGE_BUCKETS.PROPERTY_IMAGES)
           .upload(fileName, file);
 
         if (uploadError) throw uploadError;
 
         const { data: { publicUrl } } = supabase.storage
-          .from('property-images')
+          .from(STORAGE_BUCKETS.PROPERTY_IMAGES)
           .getPublicUrl(fileName);
 
         imageUrls.push(publicUrl);
@@ -172,16 +216,22 @@ const AddPropertyDialog = ({ open, onOpenChange, onSuccess }: AddPropertyDialogP
         const fileName = `${user.id}/${Date.now()}.${fileExt}`;
         
         const { error: uploadError } = await supabase.storage
-          .from('property-videos')
+          .from(STORAGE_BUCKETS.PROPERTY_VIDEOS)
           .upload(fileName, videoFile);
 
         if (uploadError) throw uploadError;
 
         const { data: { publicUrl } } = supabase.storage
-          .from('property-videos')
+          .from(STORAGE_BUCKETS.PROPERTY_VIDEOS)
           .getPublicUrl(fileName);
 
         videoUrl = publicUrl;
+      }
+
+      // Try to geocode address if we don't have coordinates yet
+      let finalCoords = coordinates;
+      if (!finalCoords && formData.address) {
+        finalCoords = await geocodeAddress(formData.address);
       }
 
       const { error } = await supabase.from("properties").insert({
@@ -198,6 +248,8 @@ const AddPropertyDialog = ({ open, onOpenChange, onSuccess }: AddPropertyDialogP
         description: formData.description,
         images: imageUrls,
         video_url: videoUrl,
+        latitude: finalCoords?.lat || null,
+        longitude: finalCoords?.lng || null,
       });
 
       if (error) throw error;
@@ -221,6 +273,7 @@ const AddPropertyDialog = ({ open, onOpenChange, onSuccess }: AddPropertyDialogP
         has_internet: false,
         description: "",
       });
+      setCoordinates(null);
       setImageFiles([]);
       setImagePreviews([]);
       setVideoFile(null);
@@ -238,11 +291,11 @@ const AddPropertyDialog = ({ open, onOpenChange, onSuccess }: AddPropertyDialogP
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle className="text-2xl">إضافة عقار جديد</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4 overflow-y-auto flex-1 px-1">
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label htmlFor="title">عنوان العقار</Label>
@@ -273,8 +326,32 @@ const AddPropertyDialog = ({ open, onOpenChange, onSuccess }: AddPropertyDialogP
               required
               value={formData.address}
               onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-              placeholder="مثال: شارع الجامعة، الجيزة"
+              onBlur={handleAddressBlur}
+              placeholder="مثال: شارع الجامعة، الجيزة، مصر"
+              disabled={geocoding}
             />
+            {geocoding && (
+              <p className="text-xs text-muted-foreground">
+                🔍 جاري البحث عن الموقع على الخريطة...
+              </p>
+            )}
+            {coordinates && (
+              <div className="mt-2">
+                <p className="text-xs text-green-600 font-medium">
+                  ✅ تم تحديد الموقع على الخريطة تلقائياً
+                </p>
+                <div className="mt-2 rounded-lg overflow-hidden border">
+                  <iframe
+                    width="100%"
+                    height="200"
+                    src={`https://www.google.com/maps?q=${coordinates.lat},${coordinates.lng}&z=15&output=embed`}
+                    style={{ border: 0 }}
+                    allowFullScreen
+                    loading="lazy"
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-4">

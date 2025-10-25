@@ -42,17 +42,53 @@ const BookingRequestsList = ({ onRequestUpdate }: BookingRequestsListProps) => {
 
       if (!user) return;
 
-      const { data, error } = await supabase
-        .from("booking_requests")
-        .select(
+      // First try with user_id foreign key, fallback to join
+      let data, error;
+      
+      try {
+        const result = await supabase
+          .from("booking_requests")
+          .select(
+            `
+            *,
+            properties (title, address, rental_type, price),
+            profiles!booking_requests_user_id_fkey (full_name, phone)
           `
-          *,
-          properties (title, address, rental_type, price),
-          profiles!booking_requests_student_id_fkey (full_name, phone)
-        `
-        )
-        .eq("owner_id", user.id)
-        .order("created_at", { ascending: false });
+          )
+          .eq("owner_id", user.id)
+          .order("created_at", { ascending: false });
+        
+        data = result.data;
+        error = result.error;
+      } catch (e) {
+        // Fallback: manual join if foreign key not found
+        const result = await supabase
+          .from("booking_requests")
+          .select("*")
+          .eq("owner_id", user.id)
+          .order("created_at", { ascending: false });
+        
+        if (result.error) throw result.error;
+        
+        // Manually fetch related data
+        const bookingsWithData = await Promise.all(
+          (result.data || []).map(async (booking) => {
+            const [propertyRes, profileRes] = await Promise.all([
+              supabase.from("properties").select("title, address, rental_type, price").eq("id", booking.property_id).single(),
+              supabase.from("profiles").select("full_name, phone").eq("id", booking.user_id).single()
+            ]);
+            
+            return {
+              ...booking,
+              properties: propertyRes.data,
+              profiles: profileRes.data
+            };
+          })
+        );
+        
+        data = bookingsWithData;
+        error = null;
+      }
 
       if (error) throw error;
       setRequests(data || []);

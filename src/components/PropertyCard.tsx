@@ -12,6 +12,7 @@ interface PropertyCardProps {
     address: string;
     rental_type: string;
     price: number;
+    owner_id: string; // Add owner_id to pass to PropertyDetailsDialog
     num_rooms?: number;
     num_beds?: number;
     gender_preference?: string;
@@ -20,6 +21,8 @@ interface PropertyCardProps {
     images?: string[];
     video_url?: string;
     description?: string;
+    latitude?: number | null;
+    longitude?: number | null;
   };
   onAction?: (propertyId: string) => void;
   actionLabel?: string;
@@ -81,8 +84,14 @@ const PropertyCard = ({
             </Badge>
           </div>
           {property.images && property.images.length > 1 && (
-            <div className="absolute bottom-3 left-3 bg-black/70 text-white px-2 py-1 rounded text-xs">
-              {property.images.length} صور
+            <div className="absolute bottom-3 left-3 bg-primary text-primary-foreground px-3 py-1.5 rounded-lg font-bold text-sm shadow-lg flex items-center gap-1">
+              <span>📸</span>
+              <span>{property.images.length} صور</span>
+            </div>
+          )}
+          {property.images && property.images.length === 1 && (
+            <div className="absolute bottom-3 left-3 bg-black/60 text-white px-2 py-1 rounded text-xs">
+              صورة واحدة
             </div>
           )}
         </div>

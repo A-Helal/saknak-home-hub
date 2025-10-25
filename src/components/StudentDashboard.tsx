@@ -40,18 +40,24 @@ const StudentDashboard = () => {
 
   const fetchProperties = async () => {
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
       let query = supabase
         .from("properties")
         .select("*")
-        .neq("status", "reserved") // Hide reserved properties
-        .order("created_at", { ascending: false });
+        .neq("status", "reserved");
+      
+      if (user) {
+        query = query.neq("owner_id", user.id);
+      }
+      
+      query = query.order("created_at", { ascending: false });
 
       const { data, error } = await query;
 
       if (error) throw error;
       setProperties(data || []);
     } catch (error) {
-      console.error("Error fetching properties:", error);
       toast({
         title: "خطأ",
         description: "فشل تحميل العقارات",
@@ -80,8 +86,6 @@ const StudentDashboard = () => {
         setRecommendations(data.recommendations);
       }
     } catch (error: any) {
-      console.error("Error fetching recommendations:", error);
-      // Silently fail for recommendations
     } finally {
       setLoadingRecommendations(false);
     }
@@ -105,7 +109,7 @@ const StudentDashboard = () => {
         .from("booking_requests")
         .insert({
           property_id: propertyId,
-          student_id: session.user.id,
+          user_id: session.user.id,
           owner_id: property.owner_id,
           status: "pending",
         })

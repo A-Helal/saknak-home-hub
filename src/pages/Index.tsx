@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Building2, GraduationCap, Search, Shield, Zap } from "lucide-react";
 import { Link } from "react-router-dom";
 import Navbar from "@/components/Navbar";
+import { Footer } from "@/components/Footer";
 import heroImage from "@/assets/hero-image.jpg";
 
 const Index = () => {
@@ -116,11 +117,7 @@ const Index = () => {
       </section>
 
       {/* Footer */}
-      <footer className="bg-card border-t py-8">
-        <div className="container mx-auto px-4 text-center text-muted-foreground">
-          <p>© 2025 سكنك - جميع الحقوق محفوظة</p>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 };
