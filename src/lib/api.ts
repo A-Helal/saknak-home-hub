@@ -156,11 +156,11 @@ export const propertiesApi = {
 
 export const bookingsApi = {
   async getBookings(userId: string, userType: "student" | "owner") {
-    const column = userType === "student" ? "user_id" : "owner_id";
+    const column = userType === "student" ? "student_id" : "owner_id";
 
     const { data, error } = await supabase
       .from("booking_requests")
-      .select("*, properties(*), profiles!booking_requests_user_id_fkey(*)")
+      .select("*, properties(*), profiles!booking_requests_student_id_fkey(*)")
       .eq(column, userId)
       .order("created_at", { ascending: false });
 
@@ -169,7 +169,7 @@ export const bookingsApi = {
   },
 
   async createBooking(booking: {
-    user_id: string;
+    student_id: string;
     property_id: string;
     owner_id: string;
     message?: string;

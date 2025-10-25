@@ -52,7 +52,7 @@ const BookingRequestsList = ({ onRequestUpdate }: BookingRequestsListProps) => {
             `
             *,
             properties (title, address, rental_type, price),
-            profiles!booking_requests_user_id_fkey (full_name, phone)
+            profiles!booking_requests_student_id_fkey (full_name, phone)
           `
           )
           .eq("owner_id", user.id)
@@ -75,7 +75,7 @@ const BookingRequestsList = ({ onRequestUpdate }: BookingRequestsListProps) => {
           (result.data || []).map(async (booking) => {
             const [propertyRes, profileRes] = await Promise.all([
               supabase.from("properties").select("title, address, rental_type, price").eq("id", booking.property_id).single(),
-              supabase.from("profiles").select("full_name, phone").eq("id", booking.user_id).single()
+              supabase.from("profiles").select("full_name, phone").eq("id", booking.student_id).single()
             ]);
             
             return {
