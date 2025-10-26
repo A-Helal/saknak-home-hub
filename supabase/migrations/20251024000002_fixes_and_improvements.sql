@@ -40,16 +40,16 @@ BEGIN
       AND status = 'pending'
       AND id != NEW.id;
 
+    INSERT INTO notifications (user_id, title, body)
+    VALUES (NEW.student_id, notification_title, notification_body);
+
   ELSIF (NEW.status = 'rejected' OR NEW.status = 'denied') AND (OLD.status != 'rejected' AND OLD.status != 'denied') THEN
     notification_title := 'تم رفض حجزك';
     notification_body := 'نأسف لإبلاغك، ولكن تم رفض طلب الحجز الخاص بك من قبل المالك.';
-  ELSE
-    -- For any other status change, do nothing.
-    RETURN NEW;
+
+    INSERT INTO notifications (user_id, title, body)
+    VALUES (NEW.student_id, notification_title, notification_body);
   END IF;
-  
-  INSERT INTO notifications (user_id, title, body)
-  VALUES (NEW.student_id, notification_title, notification_body);
   
   RETURN NEW;
 END;
