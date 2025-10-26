@@ -35,10 +35,10 @@ BEGIN
 
     -- Auto-deny other pending bookings for the same property
     UPDATE booking_requests
-    SET status = 'denied'
-    WHERE property_id = NEW.property_id
-      AND status = 'pending'
-      AND id != NEW.id;
+SET status = 'denied'
+WHERE property_id = NEW.property_id
+  AND status = 'pending'
+  AND id != NEW.id;
 
     INSERT INTO notifications (user_id, title, body)
     VALUES (NEW.student_id, notification_title, notification_body);
@@ -182,6 +182,14 @@ CREATE TRIGGER validate_student_profile_before_booking
   BEFORE INSERT ON booking_requests
   FOR EACH ROW
   EXECUTE FUNCTION validate_student_booking();
+
+
+
+  CREATE POLICY "Owners can update booking_requests for their properties"
+ON booking_requests
+FOR UPDATE
+USING (owner_id = auth.uid());
+
 
 -- 7. ADD INDEXES FOR PERFORMANCE
 -- =====================================================

@@ -94,34 +94,53 @@ const BookingRequestsList = ({ onRequestUpdate }: BookingRequestsListProps) => {
   };
 
   const handleUpdateStatus = async () => {
-    if (!pendingAction) return;
+  if (!pendingAction) return;
 
-    try {
-      const { error } = await supabase
-        .from("booking_requests")
-        .update({ status: pendingAction.status })
-        .eq("id", pendingAction.requestId);
+  try {
+    const { data: userData } = await supabase.auth.getUser();
+    const user = userData?.user;
+    if (!user) throw new Error("لم يتم العثور على المستخدم");
 
-      if (error) throw error;
+    // Update booking status safely
+    const { data, error } = await supabase
+      .from("booking_requests")
+      .update({
+        status: pendingAction.status, // "accepted" or "rejected"
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", pendingAction.requestId)
+      .select(); // returns updated row to see errors clearly
 
-      toast({
-        title: pendingAction.status === "accepted" ? "تم القبول" : "تم الرفض",
-        description: `تم ${pendingAction.status === "accepted" ? "قبول" : "رفض"} طلب الحجز`,
-      });
-
-      fetchBookingRequests();
-      onRequestUpdate?.();
-    } catch (error: any) {
-      toast({
-        title: "خطأ",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setActionDialogOpen(false);
-      setPendingAction(null);
+    if (error) {
+      console.error("❌ Supabase update error:", error);
+      throw new Error(error.message);
     }
-  };
+
+    // ✅ Feedback toast
+    toast({
+      title: pendingAction.status === "accepted" ? "تم القبول" : "تم الرفض",
+      description: `تم ${
+        pendingAction.status === "accepted" ? "قبول" : "رفض"
+      } طلب الحجز بنجاح.`,
+    });
+
+    // 🔄 Refresh
+    fetchBookingRequests();
+    onRequestUpdate?.();
+
+  } catch (error: any) {
+    console.error("⚠️ handleUpdateStatus error:", error);
+    toast({
+      title: "خطأ",
+      description: error.message || "حدث خطأ غير متوقع أثناء تحديث الحالة.",
+      variant: "destructive",
+    });
+  } finally {
+    setActionDialogOpen(false);
+    setPendingAction(null);
+  }
+};
+
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
