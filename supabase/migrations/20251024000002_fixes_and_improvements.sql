@@ -186,7 +186,8 @@ CREATE TRIGGER validate_student_profile_before_booking
 -- 7. ADD INDEXES FOR PERFORMANCE
 -- =====================================================
 CREATE INDEX IF NOT EXISTS idx_booking_requests_status ON booking_requests(status);
-CREATE INDEX IF NOT EXISTS idx_booking_requests_user_id ON booking_requests(user_id);
+CREATE INDEX IF NOT EXISTS idx_booking_requests_student_id ON booking_requests(student_id);
+CREATE INDEX IF NOT EXISTS idx_booking_requests_owner_id ON booking_requests(owner_id);
 CREATE INDEX IF NOT EXISTS idx_booking_requests_property_id ON booking_requests(property_id);
 CREATE INDEX IF NOT EXISTS idx_notifications_user_id_read ON notifications(user_id, read);
 CREATE INDEX IF NOT EXISTS idx_properties_location ON properties(latitude, longitude) WHERE latitude IS NOT NULL AND longitude IS NOT NULL;
@@ -196,9 +197,9 @@ CREATE INDEX IF NOT EXISTS idx_properties_location ON properties(latitude, longi
 -- =====================================================
 -- All fixes applied:
 -- ✅ Student levels extended to 1-5, excellence, graduate
--- ✅ No notification sent on booking denial
+-- ✅ Notification sent on booking denial and rejection
 -- ✅ Duplicate reservations prevented via unique index
 -- ✅ Map fields (latitude, longitude) ensured in properties
 -- ✅ Rent payment scoring (+10 points) confirmed and improved
 -- ✅ Profile validation before booking
--- ✅ Performance indexes added
+-- ✅ Performance indexes added with correct column names
