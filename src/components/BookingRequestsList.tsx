@@ -126,11 +126,13 @@ const BookingRequestsList = ({ onRequestUpdate }: BookingRequestsListProps) => {
   const getStatusBadge = (status: string) => {
     const statusConfig = {
       pending: { label: "قيد الانتظار", variant: "secondary" as const, icon: Clock },
-      accepted: { label: "مقبول", variant: "default" as const, icon: Check },
+      accepted: { label: "مقبول", variant: "success" as const, icon: Check },
       rejected: { label: "مرفوض", variant: "destructive" as const, icon: X },
+      denied: { label: "مرفوض", variant: "destructive" as const, icon: X },
+      expired: { label: "منتهي الصلاحية", variant: "outline" as const, icon: Clock },
     };
 
-    const config = statusConfig[status as keyof typeof statusConfig];
+    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.pending;
     const Icon = config.icon;
 
     return (

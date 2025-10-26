@@ -21,27 +21,35 @@ COMMENT ON COLUMN profiles.level IS 'Student level: 1, 2, 3, 4, 5, excellence, o
 -- 2. FIX OWNER REFUSAL - NO NOTIFICATION ON DENIAL
 -- =====================================================
 -- Update the notification trigger to only send on accepted, not denied
+-- REVERTED: We now want to notify on denial as well.
 CREATE OR REPLACE FUNCTION notify_booking_status()
 RETURNS TRIGGER AS $$
+DECLARE
+  notification_title TEXT;
+  notification_body TEXT;
 BEGIN
-  -- Only send notification if status changed to 'accepted'
+  -- Send notification on status change to 'accepted', 'rejected', or 'denied'
   IF NEW.status = 'accepted' AND OLD.status != 'accepted' THEN
-    INSERT INTO notifications (user_id, title, body)
-    VALUES (
-      NEW.student_id,
-      'تم قبول حجزك',
-      'تم قبول طلب الحجز الخاص بك من قبل المالك'
-    );
-    
+    notification_title := 'تم قبول حجزك';
+    notification_body := 'تهانينا! تم قبول طلب الحجز الخاص بك من قبل المالك.';
+
     -- Auto-deny other pending bookings for the same property
     UPDATE booking_requests
     SET status = 'denied'
     WHERE property_id = NEW.property_id
       AND status = 'pending'
       AND id != NEW.id;
+
+  ELSIF (NEW.status = 'rejected' OR NEW.status = 'denied') AND (OLD.status != 'rejected' AND OLD.status != 'denied') THEN
+    notification_title := 'تم رفض حجزك';
+    notification_body := 'نأسف لإبلاغك، ولكن تم رفض طلب الحجز الخاص بك من قبل المالك.';
+  ELSE
+    -- For any other status change, do nothing.
+    RETURN NEW;
   END IF;
   
-  -- No notification for 'denied' or 'rejected' status
+  INSERT INTO notifications (user_id, title, body)
+  VALUES (NEW.student_id, notification_title, notification_body);
   
   RETURN NEW;
 END;
