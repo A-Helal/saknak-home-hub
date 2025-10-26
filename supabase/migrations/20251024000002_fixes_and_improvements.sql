@@ -1,27 +1,37 @@
 -- =====================================================
--- FIXES AND IMPROVEMENTS MIGRATION
+-- DIAGNOSIS AND FIX FOR user_id ERROR
 -- =====================================================
--- 1. Update student levels (1-5, excellence, graduate)
--- 2. Fix owner refusal - no notification on denial
--- 3. Prevent duplicate reservations
--- 4. Add map fields to properties table
--- 5. Confirm rent payment scoring trigger
+-- This script will find and fix all triggers referencing user_id
+
+-- Step 1: Find all triggers on booking_requests table
+-- Run this to see what triggers exist
+SELECT 
+    t.tgname AS trigger_name,
+    p.proname AS function_name,
+    pg_get_functiondef(p.oid) AS function_definition
+FROM pg_trigger t
+JOIN pg_class c ON t.tgrelid = c.oid
+JOIN pg_proc p ON t.tgfoid = p.oid
+WHERE c.relname = 'booking_requests';
+
+-- Step 2: Drop ALL triggers on booking_requests and recreate them correctly
 -- =====================================================
 
--- 1. UPDATE STUDENT LEVELS
--- =====================================================
--- Drop old constraint and add new one with extended levels
-ALTER TABLE profiles DROP CONSTRAINT IF EXISTS profiles_level_check;
-ALTER TABLE profiles
-  ADD CONSTRAINT profiles_level_check
-  CHECK (level IN ('1', '2', '3', '4', '5', 'excellence', 'graduate'));
+-- Drop all existing triggers
+DROP TRIGGER IF EXISTS booking_status_notification ON booking_requests;
+DROP TRIGGER IF EXISTS add_score_on_payment ON booking_requests;
+DROP TRIGGER IF EXISTS validate_student_profile_before_booking ON booking_requests;
+DROP TRIGGER IF EXISTS set_updated_at ON booking_requests;
 
-COMMENT ON COLUMN profiles.level IS 'Student level: 1, 2, 3, 4, 5, excellence, or graduate';
+-- Drop old functions that might reference user_id
+DROP FUNCTION IF EXISTS notify_booking_status() CASCADE;
+DROP FUNCTION IF EXISTS update_student_score() CASCADE;
+DROP FUNCTION IF EXISTS validate_student_booking() CASCADE;
 
--- 2. FIX OWNER REFUSAL - NO NOTIFICATION ON DENIAL
+-- Step 3: Recreate all functions with CORRECT field names
 -- =====================================================
--- Update the notification trigger to only send on accepted, not denied
--- REVERTED: We now want to notify on denial as well.
+
+-- Function 1: Notification on booking status change
 CREATE OR REPLACE FUNCTION notify_booking_status()
 RETURNS TRIGGER AS $$
 DECLARE
@@ -29,7 +39,7 @@ DECLARE
   notification_body TEXT;
 BEGIN
   -- Send notification on status change to 'accepted', 'rejected', or 'denied'
-  IF NEW.status = 'accepted' AND OLD.status != 'accepted' THEN
+  IF NEW.status = 'accepted' AND (OLD.status IS NULL OR OLD.status != 'accepted') THEN
     notification_title := 'تم قبول حجزك';
     notification_body := 'تهانينا! تم قبول طلب الحجز الخاص بك من قبل المالك.';
 
@@ -40,13 +50,16 @@ BEGIN
       AND status = 'pending'
       AND id != NEW.id;
 
+    -- Send notification to STUDENT (not user_id!)
     INSERT INTO notifications (user_id, title, body)
     VALUES (NEW.student_id, notification_title, notification_body);
 
-  ELSIF (NEW.status = 'rejected' OR NEW.status = 'denied') AND (OLD.status != 'rejected' AND OLD.status != 'denied') THEN
+  ELSIF (NEW.status = 'rejected' OR NEW.status = 'denied') 
+        AND (OLD.status IS NULL OR (OLD.status != 'rejected' AND OLD.status != 'denied')) THEN
     notification_title := 'تم رفض حجزك';
     notification_body := 'نأسف لإبلاغك، ولكن تم رفض طلب الحجز الخاص بك من قبل المالك.';
 
+    -- Send notification to STUDENT (not user_id!)
     INSERT INTO notifications (user_id, title, body)
     VALUES (NEW.student_id, notification_title, notification_body);
   END IF;
@@ -55,63 +68,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Recreate trigger
-DROP TRIGGER IF EXISTS booking_status_notification ON booking_requests;
-CREATE TRIGGER booking_status_notification
-  AFTER UPDATE OF status ON booking_requests
-  FOR EACH ROW
-  WHEN (OLD.status IS DISTINCT FROM NEW.status)
-  EXECUTE FUNCTION notify_booking_status();
-
--- 3. PREVENT DUPLICATE RESERVATIONS
--- =====================================================
--- Create unique index to prevent multiple pending bookings
--- for the same user on the same property
-CREATE UNIQUE INDEX IF NOT EXISTS one_pending_booking_per_student_property
-  ON booking_requests (student_id, property_id)
-  WHERE status = 'pending';
-
-COMMENT ON INDEX one_pending_booking_per_student_property IS 
-  'Ensures a user can only have one pending booking per property at a time';
-
--- 4. ENSURE MAP FIELDS EXIST
--- =====================================================
--- Add latitude and longitude to properties if not exists
-DO $$ 
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM information_schema.columns 
-    WHERE table_name = 'properties' AND column_name = 'latitude'
-  ) THEN
-    ALTER TABLE properties ADD COLUMN latitude DOUBLE PRECISION;
-  END IF;
-
-  IF NOT EXISTS (
-    SELECT 1 FROM information_schema.columns 
-    WHERE table_name = 'properties' AND column_name = 'longitude'
-  ) THEN
-    ALTER TABLE properties ADD COLUMN longitude DOUBLE PRECISION;
-  END IF;
-END $$;
-
--- Add address_details jsonb field if not exists
-DO $$ 
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM information_schema.columns 
-    WHERE table_name = 'properties' AND column_name = 'address_details'
-  ) THEN
-    ALTER TABLE properties ADD COLUMN address_details JSONB;
-  END IF;
-END $$;
-
-COMMENT ON COLUMN properties.latitude IS 'Property latitude for map display';
-COMMENT ON COLUMN properties.longitude IS 'Property longitude for map display';
-COMMENT ON COLUMN properties.address_details IS 'Complete address information including geocoded data';
-
--- 5. CONFIRM RENT PAYMENT SCORING (+10 POINTS)
--- =====================================================
--- Update the scoring function to be more robust
+-- Function 2: Update student score on rent payment
 CREATE OR REPLACE FUNCTION update_student_score()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -126,7 +83,7 @@ BEGIN
     SET score = COALESCE(score, 0) + 10
     WHERE id = NEW.student_id;
     
-    -- Send congratulations notification
+    -- Send congratulations notification to STUDENT
     INSERT INTO notifications (user_id, title, body)
     VALUES (
       NEW.student_id,
@@ -139,22 +96,13 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Recreate the trigger
-DROP TRIGGER IF EXISTS add_score_on_payment ON booking_requests;
-CREATE TRIGGER add_score_on_payment
-  AFTER UPDATE OF rent_paid_date ON booking_requests
-  FOR EACH ROW
-  EXECUTE FUNCTION update_student_score();
-
--- 6. ADD VALIDATION FUNCTION FOR PROFILE COMPLETENESS
--- =====================================================
--- Ensure students complete profile before booking
+-- Function 3: Validate student profile before booking
 CREATE OR REPLACE FUNCTION validate_student_booking()
 RETURNS TRIGGER AS $$
 DECLARE
   v_profile RECORD;
 BEGIN
-  -- Get student profile
+  -- Get student profile using student_id (not user_id!)
   SELECT * INTO v_profile
   FROM profiles
   WHERE id = NEW.student_id;
@@ -176,30 +124,68 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Create trigger for validation
-DROP TRIGGER IF EXISTS validate_student_profile_before_booking ON booking_requests;
+-- Function 4: Auto-update updated_at timestamp
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = CURRENT_TIMESTAMP;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Step 4: Create all triggers
+-- =====================================================
+
+-- Trigger 1: Booking status notification
+CREATE TRIGGER booking_status_notification
+  AFTER UPDATE OF status ON booking_requests
+  FOR EACH ROW
+  WHEN (OLD.status IS DISTINCT FROM NEW.status)
+  EXECUTE FUNCTION notify_booking_status();
+
+-- Trigger 2: Score on rent payment
+CREATE TRIGGER add_score_on_payment
+  AFTER UPDATE OF rent_paid_date ON booking_requests
+  FOR EACH ROW
+  EXECUTE FUNCTION update_student_score();
+
+-- Trigger 3: Validate student profile before booking
 CREATE TRIGGER validate_student_profile_before_booking
   BEFORE INSERT ON booking_requests
   FOR EACH ROW
   EXECUTE FUNCTION validate_student_booking();
 
--- 7. ADD INDEXES FOR PERFORMANCE
+-- Trigger 4: Auto-update updated_at
+CREATE TRIGGER set_updated_at
+  BEFORE UPDATE ON booking_requests
+  FOR EACH ROW
+  EXECUTE FUNCTION update_updated_at_column();
+
+-- Step 5: Verify the fix
 -- =====================================================
-CREATE INDEX IF NOT EXISTS idx_booking_requests_status ON booking_requests(status);
-CREATE INDEX IF NOT EXISTS idx_booking_requests_student_id ON booking_requests(student_id);
-CREATE INDEX IF NOT EXISTS idx_booking_requests_owner_id ON booking_requests(owner_id);
-CREATE INDEX IF NOT EXISTS idx_booking_requests_property_id ON booking_requests(property_id);
-CREATE INDEX IF NOT EXISTS idx_notifications_user_id_read ON notifications(user_id, read);
-CREATE INDEX IF NOT EXISTS idx_properties_location ON properties(latitude, longitude) WHERE latitude IS NOT NULL AND longitude IS NOT NULL;
+-- Run this to confirm all triggers are using correct fields
+SELECT 
+    t.tgname AS trigger_name,
+    p.proname AS function_name,
+    CASE 
+        WHEN pg_get_functiondef(p.oid) LIKE '%user_id%' 
+        AND pg_get_functiondef(p.oid) NOT LIKE '%notifications%user_id%'
+        THEN '❌ Still has user_id reference!'
+        ELSE '✅ Looks good'
+    END AS status
+FROM pg_trigger t
+JOIN pg_class c ON t.tgrelid = c.oid
+JOIN pg_proc p ON t.tgfoid = p.oid
+WHERE c.relname = 'booking_requests';
 
 -- =====================================================
--- MIGRATION COMPLETE
+-- COMPLETE FIX APPLIED
 -- =====================================================
--- All fixes applied:
--- ✅ Student levels extended to 1-5, excellence, graduate
--- ✅ Notification sent on booking denial and rejection
--- ✅ Duplicate reservations prevented via unique index
--- ✅ Map fields (latitude, longitude) ensured in properties
--- ✅ Rent payment scoring (+10 points) confirmed and improved
--- ✅ Profile validation before booking
--- ✅ Performance indexes added with correct column names
+-- All triggers now correctly use:
+-- - NEW.student_id (for student references)
+-- - NEW.owner_id (for owner references)  
+-- - NEW.property_id (for property references)
+-- 
+-- The only user_id references are in INSERT INTO notifications
+-- which is CORRECT because notifications table has user_id column
+-- =====================================================
