@@ -17,7 +17,11 @@ BEGIN
   WHERE id = NEW.property_id;
   
   -- Check if the user trying to book is the owner
+<<<<<<< HEAD
   IF NEW.user_id = v_property_owner_id THEN
+=======
+  IF NEW.student_id = v_property_owner_id THEN
+>>>>>>> dda508213143baa660dba93db988962291c5fe46
     RAISE EXCEPTION 'لا يمكن للمالك حجز عقاره الخاص'
       USING ERRCODE = 'check_violation';
   END IF;
@@ -68,4 +72,7 @@ CREATE TRIGGER ensure_images_array_trigger
 -- ✅ Owners cannot book their own properties (database constraint)
 -- ✅ Images array is always properly initialized
 -- =====================================================
+<<<<<<< HEAD
 
+=======
+>>>>>>> dda508213143baa660dba93db988962291c5fe46

@@ -105,6 +105,27 @@ const StudentDashboard = () => {
       const property = properties.find((p) => p.id === propertyId);
       if (!property) return;
 
+<<<<<<< HEAD
+=======
+      // Check for existing pending booking
+      const { data: existingBooking } = await supabase
+        .from("booking_requests")
+        .select("id")
+        .eq("student_id", session.user.id)
+        .eq("property_id", propertyId)
+        .eq("status", "pending")
+        .maybeSingle();
+
+      if (existingBooking) {
+        toast({
+          title: "حجز موجود مسبقاً",
+          description: "لديك بالفعل طلب حجز معلق على هذا العقار",
+          variant: "destructive",
+        });
+        return;
+      }
+
+>>>>>>> dda508213143baa660dba93db988962291c5fe46
       const { data: bookingData, error } = await supabase
         .from("booking_requests")
         .insert({

@@ -5,6 +5,7 @@ import type { Database } from './types';
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
+<<<<<<< HEAD
 // Validate environment variables
 if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
   console.error('❌ Missing Supabase environment variables!');
@@ -13,6 +14,8 @@ if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
   throw new Error('Missing required environment variables. Please configure VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY in Vercel settings.');
 }
 
+=======
+>>>>>>> dda508213143baa660dba93db988962291c5fe46
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 

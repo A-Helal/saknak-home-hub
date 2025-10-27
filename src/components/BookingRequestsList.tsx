@@ -42,6 +42,7 @@ const BookingRequestsList = ({ onRequestUpdate }: BookingRequestsListProps) => {
 
       if (!user) return;
 
+<<<<<<< HEAD
       // First try with user_id foreign key, fallback to join
       let data, error;
       
@@ -92,6 +93,42 @@ const BookingRequestsList = ({ onRequestUpdate }: BookingRequestsListProps) => {
 
       if (error) throw error;
       setRequests(data || []);
+=======
+      // Fetch booking requests
+      const { data: bookingsData, error: bookingsError } = await supabase
+        .from("booking_requests")
+        .select("*")
+        .eq("owner_id", user.id)
+        .order("created_at", { ascending: false });
+
+      if (bookingsError) throw bookingsError;
+
+      // Manually fetch related data for each booking
+      const bookingsWithData = await Promise.all(
+        (bookingsData || []).map(async (booking) => {
+          const [propertyRes, profileRes] = await Promise.all([
+            supabase
+              .from("properties")
+              .select("title, address, rental_type, price")
+              .eq("id", booking.property_id)
+              .single(),
+            supabase
+              .from("profiles")
+              .select("full_name, phone")
+              .eq("id", booking.student_id)
+              .single()
+          ]);
+          
+          return {
+            ...booking,
+            properties: propertyRes.data,
+            profiles: profileRes.data
+          };
+        })
+      );
+
+      setRequests(bookingsWithData);
+>>>>>>> dda508213143baa660dba93db988962291c5fe46
     } catch (error) {
       console.error("Error fetching booking requests:", error);
       toast({
@@ -113,6 +150,7 @@ const BookingRequestsList = ({ onRequestUpdate }: BookingRequestsListProps) => {
     if (!pendingAction) return;
 
     try {
+<<<<<<< HEAD
       const { error } = await supabase
         .from("booking_requests")
         .update({ status: pendingAction.status })
@@ -131,6 +169,43 @@ const BookingRequestsList = ({ onRequestUpdate }: BookingRequestsListProps) => {
       toast({
         title: "خطأ",
         description: error.message,
+=======
+      const { data: userData } = await supabase.auth.getUser();
+      const user = userData?.user;
+      if (!user) throw new Error("لم يتم العثور على المستخدم");
+
+      // Update booking status - Let database handle updated_at via trigger
+      const { error } = await supabase
+        .from("booking_requests")
+        .update({
+          status: pendingAction.status, // "accepted" or "rejected"
+        })
+        .eq("id", pendingAction.requestId)
+        .eq("owner_id", user.id); // Security check: ensure user owns this booking
+
+      if (error) {
+        console.error("❌ Supabase update error:", error);
+        throw new Error(error.message);
+      }
+
+      // ✅ Feedback toast
+      toast({
+        title: pendingAction.status === "accepted" ? "تم القبول" : "تم الرفض",
+        description: `تم ${
+          pendingAction.status === "accepted" ? "قبول" : "رفض"
+        } طلب الحجز بنجاح.`,
+      });
+
+      // 🔄 Refresh
+      await fetchBookingRequests();
+      onRequestUpdate?.();
+
+    } catch (error: any) {
+      console.error("⚠️ handleUpdateStatus error:", error);
+      toast({
+        title: "خطأ",
+        description: error.message || "حدث خطأ غير متوقع أثناء تحديث الحالة.",
+>>>>>>> dda508213143baa660dba93db988962291c5fe46
         variant: "destructive",
       });
     } finally {
@@ -142,11 +217,21 @@ const BookingRequestsList = ({ onRequestUpdate }: BookingRequestsListProps) => {
   const getStatusBadge = (status: string) => {
     const statusConfig = {
       pending: { label: "قيد الانتظار", variant: "secondary" as const, icon: Clock },
+<<<<<<< HEAD
       accepted: { label: "مقبول", variant: "default" as const, icon: Check },
       rejected: { label: "مرفوض", variant: "destructive" as const, icon: X },
     };
 
     const config = statusConfig[status as keyof typeof statusConfig];
+=======
+      accepted: { label: "مقبول", variant: "success" as const, icon: Check },
+      rejected: { label: "مرفوض", variant: "destructive" as const, icon: X },
+      denied: { label: "مرفوض", variant: "destructive" as const, icon: X },
+      expired: { label: "منتهي الصلاحية", variant: "outline" as const, icon: Clock },
+    };
+
+    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.pending;
+>>>>>>> dda508213143baa660dba93db988962291c5fe46
     const Icon = config.icon;
 
     return (

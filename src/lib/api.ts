@@ -156,11 +156,19 @@ export const propertiesApi = {
 
 export const bookingsApi = {
   async getBookings(userId: string, userType: "student" | "owner") {
+<<<<<<< HEAD
     const column = userType === "student" ? "student_id" : "owner_id";
 
     const { data, error } = await supabase
       .from("booking_requests")
       .select("*, properties(*), profiles!booking_requests_student_id_fkey(*)")
+=======
+    const column = userType === "student" ? "user_id" : "owner_id";
+
+    const { data, error } = await supabase
+      .from("booking_requests")
+      .select("*, properties(*), profiles!booking_requests_user_id_fkey(*)")
+>>>>>>> dda508213143baa660dba93db988962291c5fe46
       .eq(column, userId)
       .order("created_at", { ascending: false });
 
@@ -373,4 +381,7 @@ export const geocodingApi = {
     }
   },
 };
+<<<<<<< HEAD
 
+=======
+>>>>>>> dda508213143baa660dba93db988962291c5fe46
