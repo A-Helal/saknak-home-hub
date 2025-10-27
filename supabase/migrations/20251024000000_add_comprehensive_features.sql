@@ -1,17 +1,3 @@
--- ============================================
--- COMPREHENSIVE FEATURES MIGRATION
--- ============================================
--- 1. Add student fields to profiles
--- 2. Add owner fields to profiles
--- 3. Update booking_requests with new fields
--- 4. Create notifications table
--- 5. Create ratings table
--- 6. Add triggers and functions
--- ============================================
-
--- ============================================
--- 1. STUDENT PROFILE FIELDS
--- ============================================
 ALTER TABLE public.profiles
 ADD COLUMN IF NOT EXISTS civil_id_url TEXT,
 ADD COLUMN IF NOT EXISTS city TEXT,

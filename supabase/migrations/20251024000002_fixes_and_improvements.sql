@@ -175,7 +175,7 @@ CREATE TRIGGER validate_student_profile_before_booking
   EXECUTE FUNCTION validate_student_booking();
 
 -- 7. ADD INDEXES FOR PERFORMANCE
--- =====================================================
+
 CREATE INDEX IF NOT EXISTS idx_booking_requests_status ON booking_requests(status);
 CREATE INDEX IF NOT EXISTS idx_booking_requests_student_id ON booking_requests(student_id);
 CREATE INDEX IF NOT EXISTS idx_booking_requests_property_id ON booking_requests(property_id);

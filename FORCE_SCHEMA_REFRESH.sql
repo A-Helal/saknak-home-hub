@@ -3,7 +3,6 @@
 -- =====================================================
 -- This will FORCE PostgREST to reload the schema
 -- Run in: https://supabase.com/dashboard/project/oftnqwmvcpwzsaeajrns/sql
--- =====================================================
 
 -- Step 1: Verify current schema state
 SELECT 'Step 1: Checking current schema...' as status;

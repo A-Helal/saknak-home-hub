@@ -2,14 +2,11 @@
 INSERT INTO storage.buckets (id, name, public)
 VALUES ('property-images', 'property-images', true)
 ON CONFLICT (id) DO NOTHING;
--- Create storage bucket for property videos
 INSERT INTO storage.buckets (id, name, public)
 VALUES ('property-videos', 'property-videos', true)
 ON CONFLICT (id) DO NOTHING;
--- Add video_url column to properties table
 ALTER TABLE public.properties
 ADD COLUMN video_url text;
--- Storage policies for property images
 DROP POLICY IF EXISTS "Anyone can view property images" ON storage.objects;
 CREATE POLICY "Anyone can view property images"
 ON storage.objects FOR SELECT
