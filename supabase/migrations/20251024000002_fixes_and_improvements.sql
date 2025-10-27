@@ -28,7 +28,7 @@ BEGIN
   IF NEW.status = 'accepted' AND OLD.status != 'accepted' THEN
     INSERT INTO notifications (user_id, title, body)
     VALUES (
-      (SELECT user_id FROM profiles WHERE id = NEW.user_id),
+      (SELECT user_id FROM profiles WHERE id = NEW.student_id),
       'تم قبول حجزك',
       'تم قبول طلب الحجز الخاص بك من قبل المالك'
     );
@@ -42,7 +42,6 @@ BEGIN
   END IF;
   
   -- No notification for 'denied' or 'rejected' status
-  
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
@@ -58,13 +57,13 @@ CREATE TRIGGER booking_status_notification
 -- 3. PREVENT DUPLICATE RESERVATIONS
 -- =====================================================
 -- Create unique index to prevent multiple pending bookings
--- for the same user on the same property
-CREATE UNIQUE INDEX IF NOT EXISTS one_pending_booking_per_user_property
-  ON booking_requests (user_id, property_id)
+-- for the same student on the same property
+CREATE UNIQUE INDEX IF NOT EXISTS one_pending_booking_per_student_property
+  ON booking_requests (student_id, property_id)
   WHERE status = 'pending';
 
-COMMENT ON INDEX one_pending_booking_per_user_property IS 
-  'Ensures a user can only have one pending booking per property at a time';
+COMMENT ON INDEX one_pending_booking_per_student_property IS 
+  'Ensures a student can only have one pending booking per property at a time';
 
 -- 4. ENSURE MAP FIELDS EXIST
 -- =====================================================
@@ -105,7 +104,7 @@ COMMENT ON COLUMN properties.address_details IS 'Complete address information in
 -- =====================================================
 -- Update the scoring function to be more robust
 CREATE OR REPLACE FUNCTION update_student_score()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER AS $$  
 BEGIN
   -- Check if rent was paid before or on the due date
   IF NEW.rent_paid_date IS NOT NULL 
@@ -116,17 +115,17 @@ BEGIN
     -- Add 10 points to student's score
     UPDATE profiles
     SET score = COALESCE(score, 0) + 10
-    WHERE id = NEW.user_id;
+    WHERE id = NEW.student_id;
     
     -- Send congratulations notification
     INSERT INTO notifications (user_id, title, body)
     VALUES (
-      NEW.user_id,
+      NEW.student_id,
       '🎉 لقد حصلت على نقاط!',
       'تم إضافة 10 نقاط لحسابك لدفع الإيجار في الموعد المحدد. استمر في الالتزام!'
     );
   END IF;
-  
+
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
@@ -142,15 +141,15 @@ CREATE TRIGGER add_score_on_payment
 -- =====================================================
 -- Ensure students complete profile before booking
 CREATE OR REPLACE FUNCTION validate_student_booking()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER AS $$  
 DECLARE
   v_profile RECORD;
 BEGIN
   -- Get student profile
   SELECT * INTO v_profile
   FROM profiles
-  WHERE id = NEW.user_id;
-  
+  WHERE id = NEW.student_id;
+
   -- Check if student profile is complete
   IF v_profile.user_type = 'student' THEN
     IF v_profile.civil_id_url IS NULL 
@@ -163,7 +162,7 @@ BEGIN
         USING ERRCODE = 'check_violation';
     END IF;
   END IF;
-  
+
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
@@ -178,19 +177,7 @@ CREATE TRIGGER validate_student_profile_before_booking
 -- 7. ADD INDEXES FOR PERFORMANCE
 -- =====================================================
 CREATE INDEX IF NOT EXISTS idx_booking_requests_status ON booking_requests(status);
-CREATE INDEX IF NOT EXISTS idx_booking_requests_user_id ON booking_requests(user_id);
+CREATE INDEX IF NOT EXISTS idx_booking_requests_student_id ON booking_requests(student_id);
 CREATE INDEX IF NOT EXISTS idx_booking_requests_property_id ON booking_requests(property_id);
 CREATE INDEX IF NOT EXISTS idx_notifications_user_id_read ON notifications(user_id, read);
 CREATE INDEX IF NOT EXISTS idx_properties_location ON properties(latitude, longitude) WHERE latitude IS NOT NULL AND longitude IS NOT NULL;
-
--- =====================================================
--- MIGRATION COMPLETE
--- =====================================================
--- All fixes applied:
--- ✅ Student levels extended to 1-5, excellence, graduate
--- ✅ No notification sent on booking denial
--- ✅ Duplicate reservations prevented via unique index
--- ✅ Map fields (latitude, longitude) ensured in properties
--- ✅ Rent payment scoring (+10 points) confirmed and improved
--- ✅ Profile validation before booking
--- ✅ Performance indexes added
